@@ -603,9 +603,76 @@ void regret_action(struct regret *regret, struct tree *db)
     }
 }
 
+void *delete_item(struct tree *db)
+{
+  puts("Ta bort vara");
+  puts("============");
+  puts("");
+  int page = print_tree_ltr(db);
+  if (tree_depth(db) == 0)
+    {
+      puts("Det finns inget att ta bort");
+      return 0;
+    }
+  else
+    {
+      int itemindex;
+      do
+        {
+          puts("");
+          itemindex = ask_question_int("Välj en vara att ta bort:");
+          if ((itemindex + page > tree_size(db)) || (itemindex + page < 1))
+            {
+              printf("Felaktigt index! Välj ett nytt:\n");
+            }
+        }
+      while ((itemindex + page > tree_size(db)) || (itemindex + page < 1));
+      T temp = get_node_from_index(db,itemindex+page);
+      puts("");
+      printf("%s finns lagrad på följande platser:\n",temp->name);
+      int listl = list_length(temp->shelflist);
+      L *elem;
+      int counter = 0;
+      for (int i = 0; i < listl; i++)
+        {
+          counter = counter + 1;
+          elem = list_get(temp->shelflist,i);
+          printf("%d: %c%d (%d stycken)\n",counter,elem->bokstav,elem->hyllnummer,elem->antal);
+        }
+      puts("");
+      int shelfindex;
+      do
+        {
+          puts("");
+          shelfindex = ask_question_int("Vilken plats skall tas bort (0 för ingen)?");
+          if ((shelfindex > counter) || (shelfindex < 0))
+            {
+              printf("Felaktigt index! Välj ett nytt:\n");
+            }
+        }
+      while ((shelfindex < 0) || (shelfindex > counter));
+      T templist = get_node_from_index(db,shelfindex);
+      if (shelfindex == 0)
+        {
+          return 0;
+        }
+      else 
+        {
+          list_remove(temp->shelflist, shelfindex - 1, NULL);
+          if (list_length(temp->shelflist) == 0)
+            {
+              tree_remove(db, templist->name);
+            }
+        }
+    }
+  return 0;
+}
+
+
+
 int event_loop(tree_t *db)
 {
-  printf("\nVälkommen till lagerhantering 1.0\n");
+  printf("\nVälkommen till lagerhantering 1.1\n");
   char *choice = NULL;
   struct regret *regret = NULL;
   struct regret *last = new_regret(0,NULL,NULL,NULL);
@@ -638,7 +705,7 @@ int event_loop(tree_t *db)
         }
       if (*choice == 't' || *choice == 'T')
         {
-          puts("Ej implementerat än.");
+          delete_item(db);
         }
       if (*choice == 'r' || *choice == 'R')
         {
