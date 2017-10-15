@@ -714,6 +714,7 @@ void read_file(tree_t *db)
 	  if(strcmp(type, "EOF") == 0) break;
 	  T temp = calloc(1, sizeof(struct vara));
 	  fscanf(fp, "%s %s", type, value); //value = name
+	  if(strcmp(type, "EOF") == 0) break;;
 	  temp->name = strdup(value);
 	  //printf("%s - %s\n", type, value);
 	  fscanf(fp, "%s %s", type, value); //value = desc
@@ -829,12 +830,20 @@ void fyll_med_fejk(tree_t *db)
   
 }
 
+bool check_file()
+{
+  FILE *fp;
+  char temp[999];
+  fp = fopen("db.txt", "r");
+  if(fscanf(fp, "%s", temp) == EOF) return false;
+  return true;
+}
 
 int main(void)
 {
   tree_t *db = tree_new();//Skapa databasträdet
-  read_file(db);
-  //fyll_med_fejk(db);
+  if(check_file()) read_file(db);
+    //fyll_med_fejk(db);
   event_loop(db);
   printf("databasen hade %d noder.\n",tree_size(db));
   tree_delete(db,free_elements);//frigör allt minne innan avslut
