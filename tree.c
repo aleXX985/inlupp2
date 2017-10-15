@@ -355,6 +355,106 @@ T tree_remove(tree_t *tree, K key)
   
   return NULL;//endast för inlupp 1
 }
+
+int collect_elements_old(struct node *node, T *elements, int cur_index)
+{
+  if (node->left == NULL && node->right == NULL)
+    {
+      // End of branch
+      elements[cur_index] = node->elem;
+      return cur_index + 1;
+    }
+  else
+    {
+      int new_index = cur_index;
+      if (node->left != NULL)
+	{
+	  // Collect nodes in left branch first
+	  new_index = collect_elements_old(node->left, elements, cur_index);
+	}
+
+      // Add this node after every node on the left branch has been added
+      elements[new_index] = node->elem;
+      
+      if (node->right == NULL)
+	{
+	  // Return new index to parent node when done with this node
+	  return new_index + 1;
+	}
+      else
+	{
+	  // Collect all nodes in right branch before parent node is collected
+	  return collect_elements_old(node->right, elements, new_index + 1);
+	}
+    }
+}
+
+/// Returns an array holding all the elements in the tree
+/// in ascending order of their keys (which are not part
+/// of the value).
+///
+/// \param tree pointer to the tree
+/// \returns: array of tree_size() elements
+T *tree_elements(tree_t *tree)
+{
+  int size = tree_size(tree);
+  T *elements = calloc(size, sizeof(T));
+  if (size > 0)
+    {
+      collect_elements_old(tree->root, elements, 0);
+    }
+  return elements;
+}
+
+int collect_keys(struct node *node, K *keys, int cur_index)
+{
+  if (node->left == NULL && node->right == NULL)
+    {
+      // End of branch
+      keys[cur_index] = node->name;
+      return cur_index + 1;
+    }
+  else
+    {
+      int new_index = cur_index;
+      if (node->left != NULL)
+	{
+	  // Collect nodes in left branch first
+	  new_index = collect_keys(node->left, keys, cur_index);
+	}
+
+      // Add this node after every node on the left branch has been added
+      keys[new_index] = node->name;
+      
+      if (node->right == NULL)
+	{
+	  // Return new index to parent node when done with this node
+	  return new_index + 1;
+	}
+      else
+	{
+	  // Collect all nodes in right branch before parent node is collected
+	  return collect_keys(node->right, keys, new_index + 1);
+	}
+    }
+}
+
+/// Returns an array holding all the keys in the tree
+/// in ascending order.
+///
+/// \param tree pointer to the tree
+/// \returns: array of tree_size() keys
+K *tree_keys(tree_t *tree)
+{
+  int size = tree_size(tree);
+  K *keys = calloc(size, sizeof(K));
+  if (size > 0)
+    {
+      collect_keys(tree->root, keys, 0);
+    }
+  return keys;
+}
+
 //Not needed yet
 /*
 void print_tree_ltr_prim(struct node *n,int *counter)

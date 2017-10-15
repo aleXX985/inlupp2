@@ -668,7 +668,79 @@ void *delete_item(struct tree *db)
   return 0;
 }
 
+void write_file(tree_t *db)
+{
+  FILE *fp;
+  fp = fopen("db.txt", "w");
+  //K *keys = tree_keys(db);
+  T *elements = tree_elements(db);
+  for(int i = 0; i < tree_depth(db); i++)
+    {
+      //char *name = keys[i];
+      T item = elements[i];
+      char *name = item->name;
+      char *desc = item->beskrivning;
+      int price = item->pris;
+      fprintf(fp, "Namn %s \nBeskrivning %s \nPris %d\n", name, desc, price);
+      struct list *shelves = item->shelflist;
+      for(int i = 0; i < list_length(shelves); i++)
+	{
+	  L *temp_shelf = list_get(shelves, i);
+	  char shelf_letter = temp_shelf->bokstav;
+	  int shelf_number = temp_shelf->hyllnummer;
+	  int shelf_amount = temp_shelf->antal;
+	  fprintf(fp, "Hylla %d %d %d\n", shelf_letter, shelf_number, shelf_amount);
+	}
+      if(i+1 < tree_depth(db)) fprintf(fp, "next\n");
+    }
+  fprintf(fp, "EOF");
+  fclose(fp);
+}
 
+void read_file(tree_t *db)
+{
+  char type[999];
+  char value[999];
+  int num;
+  int num2;
+  int amount;
+  FILE *fp;
+  fp = fopen("db.txt", "r");
+  if(fp)
+    {
+      while(true)
+	{
+	  //printf("--%s--%s--\n", type, value);
+	  if(strcmp(type, "EOF") == 0) break;
+	  T temp = calloc(1, sizeof(struct vara));
+	  fscanf(fp, "%s %s", type, value); //value = name
+	  temp->name = strdup(value);
+	  //printf("%s - %s\n", type, value);
+	  fscanf(fp, "%s %s", type, value); //value = desc
+	  temp->beskrivning = strdup(value);
+	  //printf("%s - %s\n", type, value);
+	  fscanf(fp, "%s %d", type, &num); //num = price
+	  temp->pris = num;
+	  //printf("%s - %d\n", type,  num);
+	  temp->shelflist = list_new();
+	  struct list *shelves = temp->shelflist;
+	  while(1)
+	    {
+	      L elem;
+	      //if(strcmp(type, "\n") == 0 || strcmp(type, "EOF") == 0) break;
+	      fscanf(fp, "%s %d %d %d", type, &num, &num2, &amount);//num = hyllbokstav, num2 = hyllnummer, amount = hyllantal
+	      if(strcmp(type, "next") == 0 || strcmp(type, "EOF") == 0) break;
+	      elem.bokstav = num;
+	      elem.hyllnummer = num2;
+	      elem.antal = amount;
+	      list_append(shelves, elem);
+	      //printf("%s - %d - %d - %d\n", type, num, num2, amount);
+	    }
+	  tree_insert(db, temp->name, temp);
+	}
+      fclose(fp);
+    }
+}
 
 int event_loop(tree_t *db)
 {
@@ -687,6 +759,7 @@ int event_loop(tree_t *db)
       choice = ask_question_menu("\nVad vill du göra?");
       if (*choice == 'a' || *choice == 'A')
         {
+	  write_file(db);
           free(regret);
           free(last);
           free(choice);
@@ -756,9 +829,11 @@ void fyll_med_fejk(tree_t *db)
   
 }
 
+
 int main(void)
 {
   tree_t *db = tree_new();//Skapa databasträdet
+  read_file(db);
   //fyll_med_fejk(db);
   event_loop(db);
   printf("databasen hade %d noder.\n",tree_size(db));
