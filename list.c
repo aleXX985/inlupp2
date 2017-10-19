@@ -1,7 +1,7 @@
 #include "list.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "utils.h"
 /*
 KÄNDA PROBLEM:
 kolla om L är en int fortfarande
