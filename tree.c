@@ -210,7 +210,112 @@ bool check_tree_for_string(struct node *nod, K key,T elem)
     }
   return false;
 }
-  
+
+int balans_faktor(struct node *nod) {
+  int balans_faktor = 0;
+  if(nod->right)
+    {
+      balans_faktor -= count_depth(nod->right);
+    }
+  if(nod->left)
+    {
+      balans_faktor += count_depth(nod->left);
+    }
+  return balans_faktor;
+}
+
+struct node *rotera_left_left(struct node *nod) {
+  struct node *original_nod = nod;
+  struct node *original_left = original_nod->left;
+  original_nod->left = original_left->right;
+  original_left->right = original_nod;
+  return(original_left);
+}
+
+struct node *rotera_left_right(struct node *nod) {
+  struct node *original_nod = nod;
+  struct node *original_left = original_nod->left;
+  struct node *left_right = original_left->right;
+  original_nod->left = left_right->right;
+  original_left->right = left_right->left; 
+  left_right->left = original_left;
+  left_right->right = original_nod;
+  return(left_right);
+}
+
+struct node *rotera_right_left(struct node *nod) {
+  struct node *original_nod = nod;
+  struct node *original_right = original_nod->right;
+  struct node *right_left = original_right->left;
+  original_nod->right = right_left->left;
+  original_right->left = right_left->right; 
+  right_left->right = original_right;
+  right_left->left = original_nod;
+  return(right_left);
+}
+
+struct node *rotera_right_right(struct node *nod) {
+  struct node *original_nod = nod;
+  struct node *original_right = original_nod->right;
+  original_nod->right = original_right->left;
+  original_right->left = original_nod; 
+  return(original_right);
+}
+
+struct node *balansera_nod(struct node *nod) {
+  struct node *ny_rot = NULL;
+
+  if(nod->left)
+    {
+      nod->left  = balansera_nod(nod->left);
+    }
+  if(nod->right)
+    {
+      nod->right = balansera_nod(nod->right);
+    }
+
+  int balans_faktor_original = balans_faktor(nod);
+
+  if(balans_faktor_original <= -2)
+    {
+      if(balans_faktor(nod->right) >= 1)
+	{
+	  ny_rot = rotera_right_left(nod);
+	}
+      else
+	{
+	  ny_rot = rotera_right_right(nod);
+	}
+
+    }
+  else if(balans_faktor_original >= 2)
+    {
+	
+      if(balans_faktor(nod->left) <= -1)
+	{
+	  ny_rot = rotera_left_right(nod);
+	}
+      else
+	{
+	  ny_rot = rotera_left_left(nod);
+	}
+
+    }
+  else
+    {
+      ny_rot = nod;
+    }
+
+  return(ny_rot);	
+}
+
+void balance(tree_t *tree)
+{
+	struct node *ny_rot = NULL;
+	ny_rot = balansera_nod(tree->root);
+	tree->root = ny_rot; 
+}
+
 bool tree_insert(tree_t *tree, K key, T elem)
 //Check if root exists
 //check if the element is alphabetically before or after
@@ -220,7 +325,9 @@ bool tree_insert(tree_t *tree, K key, T elem)
     {
       if (tree->root)
         {
-          return check_tree_for_string(tree->root, key, elem);
+          bool temp = check_tree_for_string(tree->root, key, elem);
+	  balance(tree);
+	  return temp;
         }
       else
         {

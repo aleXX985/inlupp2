@@ -62,7 +62,81 @@ struct link
   struct link *next;
 };
 
-T new_element(K namn,char *description,int price, L elem)//lista malloceras?
+int _print_t(struct node *tree, int is_left, int offset, int depth, char s[20][255])
+{
+    char b[20];
+    int width = 5;
+
+    if (!tree) return 0;
+
+    sprintf(b, "(%03d)", tree->name);
+
+    int left  = _print_t(tree->left,  1, offset,                depth + 1, s);
+    int right = _print_t(tree->right, 0, offset + left + width, depth + 1, s);
+
+#ifdef COMPACT
+    for (int i = 0; i < width; i++)
+        s[depth][offset + left + i] = b[i];
+
+    if (depth && is_left) {
+
+        for (int i = 0; i < width + right; i++)
+            s[depth - 1][offset + left + width/2 + i] = '-';
+
+        s[depth - 1][offset + left + width/2] = '.';
+
+    } else if (depth && !is_left) {
+
+        for (int i = 0; i < left + width; i++)
+            s[depth - 1][offset - width/2 + i] = '-';
+
+        s[depth - 1][offset + left + width/2] = '.';
+    }
+#else
+    for (int i = 0; i < width; i++)
+        s[2 * depth][offset + left + i] = b[i];
+
+    if (depth && is_left) {
+
+        for (int i = 0; i < width + right; i++)
+            s[2 * depth - 1][offset + left + width/2 + i] = '-';
+
+        s[2 * depth - 1][offset + left + width/2] = '+';
+        s[2 * depth - 1][offset + left + width + right + width/2] = '+';
+
+    } else if (depth && !is_left) {
+
+        for (int i = 0; i < left + width; i++)
+            s[2 * depth - 1][offset - width/2 + i] = '-';
+
+        s[2 * depth - 1][offset + left + width/2] = '+';
+        s[2 * depth - 1][offset - width/2 - 1] = '+';
+    }
+#endif
+
+    return left + width + right;
+}
+
+void print_t(struct node *tree)
+{
+    char s[20][255];
+    for (int i = 0; i < 20; i++)
+        sprintf(s[i], "%80s", " ");
+
+    _print_t(tree, 0, 0, 0, s);
+
+    for (int i = 0; i < 20; i++)
+        printf("%s\n", s[i]);
+}
+
+/// creates a new goods element 
+///
+/// \param char pointer to the name
+/// \param char pointer to the description
+/// \param int for the price
+/// \param L element for first shelf
+/// \returns T the newly created element
+T new_element(K namn, char *description,int price, L elem)//lista malloceras?
 {
   T temp = calloc(1,sizeof(struct vara));
   temp->name = namn;
@@ -73,6 +147,7 @@ T new_element(K namn,char *description,int price, L elem)//lista malloceras?
   return temp;
 };
 
+///prints out the main options menu
 void print_menu()
 {
   printf("===============================\n");
@@ -86,6 +161,7 @@ void print_menu()
   printf("===============================\n");
 }
 
+/// auxilliary function
 void print_tree_ltr_prim(struct node *n,int *counter, int *page)
 {
   if (n && *counter > 0)//noden finns
@@ -121,6 +197,10 @@ void print_tree_ltr_prim(struct node *n,int *counter, int *page)
   //noden fanns inte
 }
 
+/// lets the user check what goods are in the tree
+///
+/// \param struct tree pointer to a valid tree
+/// \returns int 
 int print_tree_ltr(struct tree *t)
 {
   puts("-------------------------------");
@@ -146,6 +226,10 @@ int print_tree_ltr(struct tree *t)
   return page;
 }
 
+/// frees the memory allocated by an element
+///
+/// \param k key (useless)
+/// \param T element to free
 void free_elements(K key, T elem)//Varför ska den här ha key?
 {
   if (elem)
@@ -156,6 +240,7 @@ void free_elements(K key, T elem)//Varför ska den här ha key?
     }
 }
 
+/// auxilliary function
 void does_node_have_shelf(struct node *n, char *shelf, bool *exists)
 {
   if (n && n->elem && n->elem->shelflist) //om noden finns och elementet finns och elementet har en lista
@@ -186,6 +271,7 @@ void does_node_have_shelf(struct node *n, char *shelf, bool *exists)
     }
 }
 
+/// auxilliary function
 void is_shelf_taken_prim(struct node* n, char *shelf, bool *exists)
 {
   if (n)
@@ -196,7 +282,11 @@ void is_shelf_taken_prim(struct node* n, char *shelf, bool *exists)
       is_shelf_taken_prim(n->right,shelf,exists);
     }
 }
-
+/// checks if a shelf input is already in use
+///
+/// \param struct tree pointer to the database tree
+/// \param char pointer to the input shelf name
+/// \returns bool whether or not shelf is in use
 bool is_shelf_taken(struct tree *db, char *shelf)
 {
   bool isItThere = false;
@@ -207,6 +297,10 @@ bool is_shelf_taken(struct tree *db, char *shelf)
   return isItThere;
 }
 
+/// edits an element 
+///
+/// \param T element to edit
+/// \param struct tree pointer to the database
 void edit_element(T element, struct tree *db)
 {
   //char *name = strdup(ask_question_string("Vad heter varan?"));
@@ -245,6 +339,9 @@ void edit_element(T element, struct tree *db)
     //free(name);
 }
 
+/// asks what to do with a new item 
+///
+/// \returns int for choice (1 to save, 2 to not save, 3 to edit)
 int new_item_menu()
 {
   char *choice;
@@ -274,6 +371,14 @@ int new_item_menu()
   return 0;
 }
 
+
+/// creates a new regret (undo) struct
+///
+/// \param int code (undo edit/add/remove etc)
+/// \param struct node pointer to a node
+/// \param struct vara pointer to a vara
+/// \param struct list pointer to a list
+/// \returns struct regret object with all the data input
 struct regret *new_regret(int code, struct node *nod, struct vara *vara, struct list *lista)
 {
   struct regret *temp = calloc(1,sizeof(struct regret));
@@ -284,6 +389,10 @@ struct regret *new_regret(int code, struct node *nod, struct vara *vara, struct 
   return temp;
 }
 
+/// adds a new item into the database if valid input
+///
+/// \param  struct tree pointer to a database
+/// \returns struct regret object for undo
 struct regret *new_item(struct tree *db)
 {
   char *name = strdup(ask_question_string("Vad heter varan?"));
@@ -382,6 +491,7 @@ struct regret *new_item(struct tree *db)
     }
 }
 
+///auxilliary function
 T get_node_from_index_prim(struct node *n, int index, int *counter)
 {
   T temp;
@@ -412,12 +522,20 @@ T get_node_from_index_prim(struct node *n, int index, int *counter)
   return NULL;
 }
 
+/// get a node from an index
+///
+/// \param tree_t pointer to a tree
+/// \param int index to get item from
+/// \returns T element from the index
 T get_node_from_index(tree_t *db, int index)
 {
   int counter = 0;
   return get_node_from_index_prim(db->root,index,&counter);
 }
 
+/// prints the edit menu
+///
+/// \param struct vara to edit
 void print_edit(struct vara *temp)
 {
   puts("");
@@ -431,6 +549,9 @@ void print_edit(struct vara *temp)
   puts("");
 }
 
+/// prints all the info about a vara
+///
+/// \param T vara struct
 void print_vara(T vara)
 {
   printf("-------------------------------\n");
@@ -445,6 +566,12 @@ void print_vara(T vara)
       printf("Hylla: %c%d Antal:%d\n",elem->bokstav,elem->hyllnummer,elem->antal);
     }
 }
+
+/// checks if a shelf list contains an input shelf
+///
+/// \param struct list pointer to a list
+/// \param char pointer to an input shelf name
+/// \returns int index of shelf in list if it exists, else -1
 int list_contains(struct list *l, char *shelf)
 {
   int length = list_length(l);
@@ -465,6 +592,11 @@ int list_contains(struct list *l, char *shelf)
   return -1;
 }
 
+
+/// returns a copy of a given list
+///
+/// \param struct list pointer to a list
+/// \returns struct list pointer to an identical (But not the same) list
 struct list *copy_list(struct list *l)
 {
   int length = list_length(l);
@@ -478,6 +610,10 @@ struct list *copy_list(struct list *l)
   return temp;
 }
 
+///  edits an item
+///
+/// \param tree_t pointer to a database to select an item to edit from
+/// \returns struct regret for undo
 struct regret *edit_item(tree_t *db)
 {
   struct regret *regret = new_regret(0,NULL,NULL,NULL);
@@ -559,6 +695,10 @@ struct regret *edit_item(tree_t *db)
   return regret;
 }
 
+/// undo the previous action
+///
+/// \param struct regret pointer to a regret struct returned from another function (or saved)
+/// \param struct tree pointer to a database
 void regret_action(struct regret *regret, struct tree *db)
 {
   if (regret)
@@ -668,13 +808,30 @@ void *delete_item(struct tree *db)
   return 0;
 }
 
+/// gets the length of an array of elements
+///
+/// \param T pointer to an elements array
+/// \returns int for length of array 
+int elements_depth(T *elements)
+{
+  for(int i = 0; i < 999999; i++)
+    {
+      if(elements[i] == NULL) return i;
+    }
+  return 0;
+}
+
+/// writes all the data from given database to file 
+///
+/// \param tree_t pointer to a valid database
 void write_file(tree_t *db)
 {
   FILE *fp;
   fp = fopen("db.txt", "w");
   //K *keys = tree_keys(db);
   T *elements = tree_elements(db);
-  for(int i = 0; i < tree_depth(db); i++)
+  int depth = elements_depth(elements);
+  for(int i = 0; i < depth; i++)
     {
       //char *name = keys[i];
       T item = elements[i];
@@ -691,12 +848,15 @@ void write_file(tree_t *db)
 	  int shelf_amount = temp_shelf->antal;
 	  fprintf(fp, "Hylla %d %d %d\n", shelf_letter, shelf_number, shelf_amount);
 	}
-      if(i+1 < tree_depth(db)) fprintf(fp, "next\n");
+      if(i+1 < depth) fprintf(fp, "next\n");
     }
   fprintf(fp, "EOF");
   fclose(fp);
 }
 
+/// read a database from file and inputs it
+///
+/// \param tree_t pointer to a  database
 void read_file(tree_t *db)
 {
   char type[999];
@@ -743,6 +903,10 @@ void read_file(tree_t *db)
     }
 }
 
+/// main function for the storage
+///
+/// \param tree_t pointer to a database
+/// \returns int irrelevant return
 int event_loop(tree_t *db)
 {
   printf("\nVälkommen till lagerhantering 1.1\n");
@@ -815,6 +979,9 @@ int event_loop(tree_t *db)
   return 1;
 }
 
+/// fills the database with random items
+///
+/// \param tree_t pointer to a valid database
 void fyll_med_fejk(tree_t *db)
 {
   char lista[27] = "ajklmnopqtuvxyzbcdefghirs\n";
@@ -830,6 +997,9 @@ void fyll_med_fejk(tree_t *db)
   
 }
 
+/// checks if the database savefile exists
+///
+/// \returns bool whether file exists or not
 bool check_file()
 {
   FILE *fp;
@@ -844,6 +1014,7 @@ int main(void)
   tree_t *db = tree_new();//Skapa databasträdet
   if(check_file()) read_file(db);
     //fyll_med_fejk(db);
+  print_t(db->root);
   event_loop(db);
   printf("databasen hade %d noder.\n",tree_size(db));
   tree_delete(db,free_elements);//frigör allt minne innan avslut
