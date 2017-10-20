@@ -81,7 +81,7 @@ void tree_delete_prim(struct node *n, tree_action cleanup)
     }
 }
 
-void tree_delete(tree_t *tree, tree_action cleanup)//kolla hur listorna i varorna ska hanteras med free osv
+void tree_delete(tree_t *tree, bool delete_keys, bool delete_elements)//kolla hur listorna i varorna ska hanteras med free osv
 {
   if (tree)
     {
@@ -109,20 +109,14 @@ void count_nodes_tail(struct node *n, int *sum)
     }
 }
 
-int tree_size(tree_t *tree) // fix a tail recursive version
+int tree_size(tree_t *tree) 
 {
+  int result = 0;
   if (tree)
     {
-      return count_nodes(tree->root);
+       result = count_nodes(tree->root);
     }
-  return 0;
-  /*
-  int temp = 0;
-  if (tree)
-    {
-      count_nodes_tail(tree->root,&temp);
-    }
-    return temp;*/
+  return result;
 }
 
 int bigger_number(int a, int b)
@@ -162,20 +156,20 @@ int tree_depth(tree_t *tree)
 //return 1 if exist
 //return max of the two branches
 
-bool check_tree_for_string(struct node *nod, elem_t key, elem_t elem)
+bool check_tree_for_string(struct node *nod, elem_t key, elem_t elem, element_comp_fun compare)
 {
   if (nod)//Should always happen
     {
-      if (strcmp(nod->name, key) == 0)
+      if (compare(nod->name, key) == 0)
         {
           //Fråga bara om ny lagerplats och antal
           return false;
         }
-      else if (strcmp(nod->name, key) > 0)
+      else if (compare(nod->name, key) > 0)
         {
           if (nod->left)
             {
-              return check_tree_for_string(nod->left, key, elem);
+              return check_tree_for_string(nod->left, key, elem, compare);
             }
           else
             {
@@ -183,11 +177,11 @@ bool check_tree_for_string(struct node *nod, elem_t key, elem_t elem)
               return true;
             }
         }
-      else if (strcmp(nod->name, key) < 0)
+      else if (compare(nod->name, key) < 0)
         {
           if (nod->right)
             {
-              return check_tree_for_string(nod->right, key, elem);
+              return check_tree_for_string(nod->right, key, elem, compare);
             }
           else
             {
@@ -216,7 +210,7 @@ bool tree_insert(tree_t *tree, elem_t key, elem_t elem)
     {
       if (tree->root)
         {
-          return check_tree_for_string(tree->root, key, elem);
+          return check_tree_for_string(tree->root, key, elem, tree->element_compare);
         }
       else
         {
@@ -231,15 +225,15 @@ bool tree_insert(tree_t *tree, elem_t key, elem_t elem)
 }
 
 //Optimize by checking alphabetic order, can be done by strcmp
-bool check_tree_for_key(struct node *nod, elem_t key)//Just checks everything
+bool check_tree_for_key(struct node *nod, elem_t key, element_comp_fun compare)//Just checks everything
 {
   if (nod)
     {
-      if (strcmp(nod->name,key)==0)
+      if (compare(nod->name,key)==0)
         {
           return true;
         }
-      else if (check_tree_for_key(nod->left,key) || check_tree_for_key(nod->right,key))
+      else if (check_tree_for_key(nod->left, key, compare) || check_tree_for_key(nod->right, key, compare))
         {
           return true;
         }
@@ -247,13 +241,13 @@ bool check_tree_for_key(struct node *nod, elem_t key)//Just checks everything
   return false;
 }
 
-bool tree_has_key(tree_t *tree, elem_t key) //shouldn't need tail recursion, just to select the correct node path
+bool tree_has_key(tree_t *tree, tree_key_t key)
 {
   if (tree && tree->root)
     {
       if (tree->root)
         {
-          return check_tree_for_key(tree->root, key);
+          return check_tree_for_key(tree->root, key, tree->element_compare);
         }
       else
         {
@@ -263,87 +257,134 @@ bool tree_has_key(tree_t *tree, elem_t key) //shouldn't need tail recursion, jus
   return false;
 }
 
-elem_t tree_get_prim(struct node *n, elem_t key)
+elem_t tree_get_prim(struct node *n, elem_t key, element_comp_fun compare)
 {
   if (n)
     {
-      if (strcmp(n->name, key) == 0)
+      if (compare(n->name, key) == 0)
         {
           return n->elem;
         }
-      if (strcmp(n->name, key) > 0)
+      if (compare(n->name, key) > 0)
         {
           if (n->left)
             {
-              return tree_get_prim(n->left, key);
+              return tree_get_prim(n->left, key, compare);
             }
         }
-      if (strcmp(n->name, key) < 0)
+      if (compare(n->name, key) < 0)
         {
           if (n->right)
             {
-              return tree_get_prim(n->right, key);
+              return tree_get_prim(n->right, key, compare);
             }
         }
     }
-  return NULL;
 }
 
-elem_t tree_get(tree_t *tree, elem_t key)
+bool tree_get(tree_t *tree, tree_key_t key, elem_t *result)
 {
   if (tree && tree_has_key(tree, key))
     {
-      return tree_get_prim(tree->root, key);
+      *result = tree_get_prim(tree->root, key, tree->element_compare);
+      return true;
     }
-  return NULL;
+  else
+    {
+      return false;
+    }
 }
 
-elem_t tree_remove(tree_t *tree, elem_t key)
+bool tree_remove(tree_t *tree, tree_key_t key, elem_t *result)
 {
-  //T temp;
   struct node *n = tree->root;
   struct node *parent = NULL;
 
   while(1)
     {
-      if (key == n->name)
+      if (tree->element_compare(n->name, key))
         {
           if (!parent)
             {
+              *result = n->elem;
               free(n);
               tree->root = NULL;
               return NULL;
             }
           else
             {
-              if (strcmp(parent->name, key) > 0)
+              if (tree->element_compare != NULL)
                 {
-                  free(n);
-                  parent->left = NULL;
-                  return NULL;
+                    if (tree->element_compare(parent->name, key) > 0)
+                    {
+                      *result = n->elem;
+                      free(n);
+                      parent->left = NULL;
+                      return true;
+                    }
+                  else 
+                    {
+                      *result = n->elem;
+                      free(n);
+                      parent->right = NULL;
+                      return true;
+                    }
                 }
               else
                 {
-                  free(n);
-                  parent->right = NULL;
-                  return NULL;
+                  char * treekey = key.p;
+                  char * name = parent->name.p;
+                  if (strcmp(name, treekey) > 0)
+                    {
+                      *result = n->elem;
+                      free(n);
+                      parent->left = NULL;
+                      return true;
+                    }
+                  else 
+                    {
+                      *result = n->elem;
+                      free(n);
+                      parent->right = NULL;
+                      return true;
+                    }
                 }
             }
         }
-      else if (strcmp(n->name,key) > 0)
+      else if (tree->element_compare != NULL)
         {
-          parent = n;
-          n = n->left;
+          if (tree->element_compare(n->name,key) > 0)
+            {
+              parent = n;
+              n = n->left;
+            }
+          else
+            {
+              parent = n;
+              n = n->right;
+            }
         }
       else
         {
-          parent = n;
-          n = n->right;
+          char * treekey = key.p;
+          char * name = n->name.p;
+          if (strcmp(name, treekey) > 0)
+            {
+              parent = n;
+              n = n->left;
+            }
+          else
+            {
+              parent = n;
+              n = n->right;
+            }
         }
     }
-  
   return NULL;//endast för inlupp 1
 }
+
+
+
 //Not needed yet
 /*
 void print_tree_ltr_prim(struct node *n,int *counter)
