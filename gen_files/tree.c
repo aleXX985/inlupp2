@@ -53,7 +53,7 @@ tree_t *tree_new(element_copy_fun element_copy, key_free_fun key_free, element_f
   return temp;
 }
 
-void free_element(element_free_fun fun, elem_t elem)//Varför ska den här ha key?
+void free_element(element_free_fun fun, elem_t elem)
 {
   if (fun != NULL)
     {
@@ -62,7 +62,7 @@ void free_element(element_free_fun fun, elem_t elem)//Varför ska den här ha ke
     }
 }
 
-void tree_delete_prim(struct node *n, tree_action cleanup)
+void tree_delete_prim(struct node *n, bool delete_keys, bool delete_elements)
 {
   if (n)
     {
@@ -70,22 +70,22 @@ void tree_delete_prim(struct node *n, tree_action cleanup)
         {
           if (n->left)
             {
-              tree_delete_prim(n->left, cleanup);
+              tree_delete_prim(n->left, delete_elements);
             }
           if (n->right)
             {
-              tree_delete_prim(n->right, free_element);
+              tree_delete_prim(n->right, delete_elements);
             }
         }
       free(n);
     }
 }
 
-void tree_delete(tree_t *tree, bool delete_keys, bool delete_elements)//kolla hur listorna i varorna ska hanteras med free osv
+void tree_delete(tree_t *tree, bool delete_keys, bool delete_elements)
 {
   if (tree)
     {
-      tree_delete_prim(tree->root, cleanup);
+      tree_delete_prim(tree->root, delete_keys, delete_elements);
     }
   free(tree);
 }
@@ -151,10 +151,6 @@ int tree_depth(tree_t *tree)
       return count_depth(tree->root);
     }
 }
-//int tree_depth(tree_t *tree);
-//return 0 if null
-//return 1 if exist
-//return max of the two branches
 
 bool check_tree_for_string(struct node *nod, elem_t key, elem_t elem, element_comp_fun compare)
 {
@@ -201,7 +197,7 @@ bool check_tree_for_string(struct node *nod, elem_t key, elem_t elem, element_co
   return false;
 }
   
-bool tree_insert(tree_t *tree, elem_t key, elem_t elem)
+bool tree_insert(tree_t *tree, tree_key_t key, elem_t elem)
 //Check if root exists
 //check if the element is alphabetically before or after
 //go down in tree accordingly (left for before, right for after)
@@ -381,6 +377,11 @@ bool tree_remove(tree_t *tree, tree_key_t key, elem_t *result)
         }
     }
   return NULL;//endast för inlupp 1
+}
+
+bool tree_apply(tree_t *tree, enum tree_order order, key_elem_apply_fun, void *data)
+{
+  
 }
 
 

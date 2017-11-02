@@ -7,13 +7,9 @@
 
 /*
 SAKER ATT FIXA
-ångra
-Klart (kod 1) ångra lägga till nod 
-Klart (kod 2) ångra lägga till hylla i lista
-Klart (kod 3) ångra redigera beskrivning av vara
-Klart (kod 4) ångra redigera pris av vara
-Klart (kod 5) ångra ta bort hylla i lista/ångra redigera antal i hylla
- */
+
+*/
+
 struct regret
 {
   int code; //0 = ångrade, 1 = Lade till node
@@ -29,15 +25,15 @@ struct tree //Ska dessa finnas i denna .c eller i sina respektive .c?
 
 struct node
 {
-  K name;
-  T elem; //T = struct vara*
+  elem_t name;
+  elem_t elem; //T = struct vara*
   struct node *left;
   struct node *right;
 };
 
 struct vara //*T
 {
-  K name;
+  elem_t name;
   char *beskrivning;
   int pris;
   struct list *shelflist;
@@ -58,13 +54,13 @@ struct list
 
 struct link
 {
-  L element;
+  elem_t element;
   struct link *next;
 };
 
-T new_element(K namn,char *description,int price, L elem)//lista malloceras?
+elem_t new_element(elem_t namn,char *description,int price, elem_t elem)//lista malloceras?
 {
-  T temp = calloc(1,sizeof(struct vara));
+  elem_t temp = calloc(1,sizeof(struct vara));
   temp->name = namn;
   temp->beskrivning = description;
   temp->pris = price;
@@ -146,7 +142,7 @@ int print_tree_ltr(struct tree *t)
   return page;
 }
 
-void free_elements(K key, T elem)//Varför ska den här ha key?
+void free_elements(elem_t key, elem_t elem)//Varför ska den här ha key?
 {
   if (elem)
     {
@@ -165,7 +161,7 @@ void does_node_have_shelf(struct node *n, char *shelf, bool *exists)
       if (length>0)//Den kan bara finnas in listan om listan har mer än noll objekt
         {
           struct list *temp = n->elem->shelflist;
-          L *tle;
+        elem_t *tle;
           for (int i = 0; i < length; i++)
             {
               tle = list_get(temp, i);
@@ -207,7 +203,7 @@ bool is_shelf_taken(struct tree *db, char *shelf)
   return isItThere;
 }
 
-void edit_element(T element, struct tree *db)
+void edit_element(elem_t element, struct tree *db)
 {
   //char *name = strdup(ask_question_string("Vad heter varan?"));
   char *desc = ask_question_string("Beskriv varan:");
@@ -226,7 +222,7 @@ void edit_element(T element, struct tree *db)
         }
     }
   while (is_shelf_taken(db,shelf));
-  L elem;
+  elem_t elem;
   elem.bokstav = shelf[0];
   char *ptr;
   long num = strtol(shelf+1,&ptr,10);
@@ -382,9 +378,9 @@ struct regret *new_item(struct tree *db)
     }
 }
 
-T get_node_from_index_prim(struct node *n, int index, int *counter)
+elem_t get_node_from_index_prim(struct node *n, int index, int *counter)
 {
-  T temp;
+  elem_t temp;
   if (n)
     {
       if (n->left)
@@ -412,7 +408,7 @@ T get_node_from_index_prim(struct node *n, int index, int *counter)
   return NULL;
 }
 
-T get_node_from_index(tree_t *db, int index)
+elem_t get_node_from_index(tree_t *db, int index)
 {
   int counter = 0;
   return get_node_from_index_prim(db->root,index,&counter);
@@ -438,7 +434,7 @@ void print_vara(T vara)
   printf("Beskrivning: %s\n", vara->beskrivning);
   printf("Pris: %d\n", vara->pris);
   int listl = list_length(vara->shelflist);
-  L *elem;
+  elem_t *elem;
   for (int i = 0; i < listl; i++)
     {
       elem = list_get(vara->shelflist,i);
@@ -448,7 +444,7 @@ void print_vara(T vara)
 int list_contains(struct list *l, char *shelf)
 {
   int length = list_length(l);
-  L *temp;
+  elem_t *temp;
   for (int i = 0; i < length; i++)
     {
       temp = list_get(l, i);
@@ -492,8 +488,8 @@ struct regret *edit_item(tree_t *db)
         }
     }
   while ((val+page > tree_size(db)) || (val+page < 1));
-  T temp = get_node_from_index(db,val+page);
-  T re = NULL;
+  elem_t temp = get_node_from_index(db,val+page);
+  elem_t re = NULL;
   print_vara(temp);
   puts("-------------------------------");
   print_edit(temp);
@@ -526,8 +522,8 @@ struct regret *edit_item(tree_t *db)
           finns = list_contains(temp->shelflist, hylla);
           if (finns != -1)
             {
-              L elem;
-              L *elemptr = &elem;
+              elem_t elem;
+              elem_t *elemptr = &elem;
               int antal = ask_question_int("Skriv nytt antal");
               if (antal == 0)
                 {
@@ -627,11 +623,11 @@ void *delete_item(struct tree *db)
             }
         }
       while ((itemindex + page > tree_size(db)) || (itemindex + page < 1));
-      T temp = get_node_from_index(db,itemindex+page);
+      elem_t temp = get_node_from_index(db,itemindex+page);
       puts("");
       printf("%s finns lagrad på följande platser:\n",temp->name);
       int listl = list_length(temp->shelflist);
-      L *elem;
+      elem_t *elem;
       int counter = 0;
       for (int i = 0; i < listl; i++)
         {
@@ -651,7 +647,7 @@ void *delete_item(struct tree *db)
             }
         }
       while ((shelfindex < 0) || (shelfindex > counter));
-      T templist = get_node_from_index(db,shelfindex);
+      elem_t templist = get_node_from_index(db,shelfindex);
       if (shelfindex == 0)
         {
           return 0;
