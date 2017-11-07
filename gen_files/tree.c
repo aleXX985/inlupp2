@@ -386,6 +386,10 @@ bool tree_remove(tree_t *tree, tree_key_t key, elem_t *result)
 
 void tree_keys_prim(struct node *n, elem_t *names, int *counter)
 {
+  if (n->right)
+    {
+      tree_keys_prim(n->right, names, counter);
+    }
   if (n->left == NULL)
     {
       names[*counter] = n->name;
@@ -396,23 +400,55 @@ void tree_keys_prim(struct node *n, elem_t *names, int *counter)
       names[*counter] = n->name;
       *counter += 1;
     }
-  if (n->right)
-    {
-      tree_keys_prim(n->right, names, counter);
-    }
 }
 
 tree_key_t *tree_keys(tree_t *tree)
 {
-  if (tree->root == NULL)
+  if (tree)
     {
-      
+      elem_t *names = calloc(tree_size(tree), sizeof(elem_t));
+      int counter = 0;
+      tree_keys_prim(tree->root, names, &counter);
+      return names;
+    }
+  else
+    {
+      return NULL;
+    }
+}
+
+void tree_elements_prim(struct node *n, elem_t *elems, int *counter)
+{
+  if (n->right)
+    {
+      tree_elements_prim(n->right, elems, counter);
+    }
+  if (n->left == NULL)
+    {
+      elems[*counter] = n->elem;
+      *counter += 1;
+    }
+  else
+    {
+      tree_elements_prim(n->left, elems, counter);
+      elems[*counter] = n->elem;
+      *counter += 1;
     }
 }
 
 elem_t *tree_elements(tree_t *tree)
 {
-  
+  if (tree)
+    {
+      elem_t *elems = calloc(tree_size(tree), sizeof(elem_t));
+      int counter = 0;
+      tree_elements_prim(tree->root, elems, &counter);
+      return elems;
+    }
+  else
+    {
+      return NULL;
+    }
 }
 
 bool tree_apply_prim(struct node *n, enum tree_order order, key_elem_apply_fun fun, void *data)
