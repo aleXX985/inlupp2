@@ -39,13 +39,6 @@ struct vara //*T
   struct list *shelflist;
 };
 
-struct LM
-{
-  char bokstav;
-  int hyllnummer;
-  int antal;
-};
-
 struct list
 {
   struct link * first;
@@ -58,15 +51,25 @@ struct link
   struct link *next;
 };
 
-elem_t new_element(elem_t namn,char *description,int price, elem_t elem)//lista malloceras?
+struct item
 {
-  elem_t temp = calloc(1,sizeof(struct vara));
+  char *name;
+  char *desc;
+  int price;
+  list_t shelflist;
+};
+
+  typedef struct item item_t;
+
+item_t new_element(char *namn, char *desc, int price, elem_t elem)//lista malloceras?
+{
+  item_t *temp = calloc(1,sizeof(struct item));
   temp->name = namn;
-  temp->beskrivning = description;
-  temp->pris = price;
-  temp->shelflist = list_new();//Måste skapa en lista (Vafan peddan)
-  list_append(temp->shelflist,elem); //Fakkade för att listan inte fanns
-  return temp;
+  temp->desc = desc;
+  temp->price = price;
+  temp->shelflist = list_new(copy, free, compare);
+  list_append(&temp->shelflist,elem);
+  return *temp;
 };
 
 void print_menu()
@@ -82,7 +85,7 @@ void print_menu()
   printf("===============================\n");
 }
 
-void print_tree_ltr_prim(struct node *n,int *counter, int *page)
+void print_tree_ltr_prim(struct node *n, int *counter, int *page)
 {
   if (n && *counter > 0)//noden finns
     {
@@ -142,9 +145,9 @@ int print_tree_ltr(struct tree *t)
   return page;
 }
 
-void free_elements(elem_t key, elem_t elem)//Varför ska den här ha key?
+void free_elements(elem_t name, elem_t elem)
 {
-  if (elem)
+  if ()
     {
       ///Glöm inte listan av hyllor först
       free(elem->shelflist);
@@ -737,27 +740,12 @@ int event_loop(tree_t *db)
   return 1;
 }
 
-void fyll_med_fejk(tree_t *db)
-{
-  char lista[27] = "ajklmnopqtuvxyzbcdefghirs\n";
-  L elem;
-  for (int i = 0; i < 22; i++)
-    {
-      elem.bokstav = 'B';
-      elem.hyllnummer = i;
-      elem.antal = i;
-      struct vara *vara = new_element(*(&lista+i),"1",1,elem);//FULKOD
-      tree_insert(db,vara->name,vara);
-    }
-  
-}
-
 int main(void)
 {
-  tree_t *db = tree_new();//Skapa databasträdet
+  tree_t *db = tree_new(element_copy, key_free, element_free, element_compare);//Skapa databasträdet
   //fyll_med_fejk(db);
   event_loop(db);
   printf("databasen hade %d noder.\n",tree_size(db));
-  tree_delete(db,free_elements);//frigör allt minne innan avslut
+  tree_delete(db, true, true);//frigör allt minne innan avslut
   return 0;
 }

@@ -62,20 +62,25 @@ void free_element(element_free_fun fun, elem_t elem)
     }
 }
 
-void tree_delete_prim(struct node *n, bool delete_keys, bool delete_elements)
+void tree_delete_prim(tree_t *tree, struct node *n, bool delete_keys, bool delete_elements)
 {
   if (n)
     {
-      if (n->left || n->right)//Kollar om noden har barn
+      if (n->left)
         {
-          if (n->left)
-            {
-              tree_delete_prim(n->left, delete_elements);
-            }
-          if (n->right)
-            {
-              tree_delete_prim(n->right, delete_elements);
-            }
+          tree_delete_prim(tree, n->left, delete_keys,  delete_elements);
+        }
+      if (n->right)
+        {
+          tree_delete_prim(tree, n->right, delete_keys, delete_elements);
+        }
+      if (delete_keys && tree->key_free)
+        {
+          tree->key_free(n->name);
+        }
+      if (delete_elements && tree->element_free)
+        {
+          tree->element_free(n->elem);
         }
       free(n);
     }
@@ -85,7 +90,7 @@ void tree_delete(tree_t *tree, bool delete_keys, bool delete_elements)
 {
   if (tree)
     {
-      tree_delete_prim(tree->root, delete_keys, delete_elements);
+      tree_delete_prim(tree, tree->root, delete_keys, delete_elements);
     }
   free(tree);
 }
@@ -379,9 +384,62 @@ bool tree_remove(tree_t *tree, tree_key_t key, elem_t *result)
   return NULL;//endast för inlupp 1
 }
 
-bool tree_apply(tree_t *tree, enum tree_order order, key_elem_apply_fun, void *data)
+void tree_keys_prim(struct node *n, elem_t *names, int *counter)
+{
+  if (n->left == NULL)
+    {
+      names[*counter] = n->name;
+    }
+  else
+    {
+      tree_keys_prim(n->left, names, counter);
+      names[*counter] = n->name;
+      *counter += 1;
+    }
+  if (n->right)
+    {
+      tree_keys_prim(n->right, names, counter);
+    }
+}
+
+tree_key_t *tree_keys(tree_t *tree)
+{
+  if (tree->root == NULL)
+    {
+      
+    }
+}
+
+elem_t *tree_elements(tree_t *tree)
 {
   
+}
+
+bool tree_apply_prim(struct node *n, enum tree_order order, key_elem_apply_fun fun, void *data)
+{
+  if (n)
+    {
+      if (order == preorder)
+        {
+          tree_apply_prim(n->left, order, fun, data);
+          fun(n->name, n->elem, data);
+        }
+      if (order == inorder)
+        {
+          tree_apply_prim(n->right, order, fun, data);
+          fun(n->name, n->elem, data);
+        }
+      if (order == postorder)
+        {
+          fun(n->name, n->elem, data);
+        }
+    }
+  return true;
+}
+
+bool tree_apply(tree_t *tree, enum tree_order order, key_elem_apply_fun fun, void *data)
+{
+  return tree_apply_prim(tree->root, order, fun, data);
 }
 
 
@@ -457,3 +515,4 @@ int main()
 */
 
 ///==================Not mandatory functions
+
