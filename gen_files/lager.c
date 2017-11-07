@@ -7,7 +7,7 @@
 
 /*
 SAKER ATT FIXA
-
+lager.c
 */
 
 struct regret
@@ -56,20 +56,19 @@ struct item
   char *name;
   char *desc;
   int price;
-  list_t shelflist;
+  list_t *shelflist;
 };
 
   typedef struct item item_t;
 
-item_t new_element(char *namn, char *desc, int price, elem_t elem)//lista malloceras?
+item_t *new_element(char *namn, char *desc, int price, list_t *shelflist)
 {
   item_t *temp = calloc(1,sizeof(struct item));
   temp->name = namn;
   temp->desc = desc;
   temp->price = price;
-  temp->shelflist = list_new(copy, free, compare);
-  list_append(&temp->shelflist,elem);
-  return *temp;
+  temp->shelflist = shelflist;
+  return temp;
 };
 
 void print_menu()
@@ -147,9 +146,8 @@ int print_tree_ltr(struct tree *t)
 
 void free_elements(elem_t name, elem_t elem)
 {
-  if ()
+  if (name)
     {
-      ///Glöm inte listan av hyllor först
       free(elem->shelflist);
       free(elem);
     }
@@ -235,7 +233,7 @@ void edit_element(elem_t element, struct tree *db)
   elem.antal = amount;
 
   //element->name = name;
-  element->beskrivning = desc;
+  element->desc = desc;
   element->pris = price;
   element->shelflist = list_new();
 
@@ -362,7 +360,7 @@ struct regret *new_item(struct tree *db)
         }
       while (is_shelf_taken(db,shelf));
       
-      L elem;
+      elem_t elem;
       elem.bokstav = shelf[0];
       char *ptr;
       long num = strtol(shelf+1,&ptr,10);
@@ -388,7 +386,7 @@ elem_t get_node_from_index_prim(struct node *n, int index, int *counter)
     {
       if (n->left)
         {
-          temp = get_node_from_index_prim(n->left,index,counter);
+          temp = get_node_from_index_prim(n->left, index, counter);
           if (temp)
             {
               return temp;
@@ -401,7 +399,7 @@ elem_t get_node_from_index_prim(struct node *n, int index, int *counter)
         }
       if (n->right)
         {
-          temp = get_node_from_index_prim(n->right,index,counter);
+          temp = get_node_from_index_prim(n->right, index, counter);
           if (temp)
             {
               return temp;
@@ -414,7 +412,7 @@ elem_t get_node_from_index_prim(struct node *n, int index, int *counter)
 elem_t get_node_from_index(tree_t *db, int index)
 {
   int counter = 0;
-  return get_node_from_index_prim(db->root,index,&counter);
+  return get_node_from_index_prim(db->root, index, &counter);
 }
 
 void print_edit(struct vara *temp)
@@ -742,10 +740,10 @@ int event_loop(tree_t *db)
 
 int main(void)
 {
-  tree_t *db = tree_new(element_copy, key_free, element_free, element_compare);//Skapa databasträdet
+  tree_t *db = tree_new(element_copy, key_free, element_free, element_compare); //Skapa databasträdet
   //fyll_med_fejk(db);
   event_loop(db);
   printf("databasen hade %d noder.\n",tree_size(db));
-  tree_delete(db, true, true);//frigör allt minne innan avslut
+  tree_delete(db, true, true); //frigör allt minne innan avslut
   return 0;
 }
