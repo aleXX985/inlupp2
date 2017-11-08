@@ -3,12 +3,18 @@
 
 #include <stdbool.h>
 #include "common.h"
+typedef element_free_fun key_free_fun;
+
+struct tree;
+
+struct node;
 
 typedef elem_t tree_key_t;
-typedef element_free_fun key_free_fun;
+
 
 /// Define struct tree in your .c file not here! (why?)
 typedef struct tree tree_t;
+typedef struct node node_t;
 
 /// Creates a new tree
 ///
@@ -25,7 +31,6 @@ tree_t *tree_new(element_copy_fun element_copy, key_free_fun key_free, element_f
 /// \param delete_keys if true, run tree's key_free function on all keys
 /// \param delete_elements if true, run tree's elem_free function on all elements
 void tree_delete(tree_t *tree, bool delete_keys, bool delete_elements);
-
 /// Get the size of the tree 
 ///
 /// \returns: the number of nodes in the tree
@@ -44,7 +49,7 @@ int tree_depth(tree_t *tree);
 /// elem and its result stored in the tree. Otherwise, elem will
 /// be stored in the tree. Note that keys are never copied and are
 /// assumed to be immutable. (They may however be freed by the
-/// tree.)
+/// tree.
 ///
 /// \param tree pointer to the tree
 /// \param key the key of element to be appended -- this is assumed to be an immutable value
@@ -86,6 +91,11 @@ bool tree_remove(tree_t *tree, tree_key_t key, elem_t *result);
 /// \returns true if both operations succeeded
 #define tree_update(t, k, e, tmp) \
   (tree_remove(t, k, &tmp) ? tree_insert(t, k, e) : false)
+
+
+elem_t *get_node_from_index(tree_t *db, int index);
+
+int print_tree_ltr(tree_t *t);
 
 /// Returns an array holding all the keys in the tree
 /// in ascending order.

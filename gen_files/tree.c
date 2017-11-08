@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "utils.h"
 
 struct tree
 {
@@ -18,18 +19,9 @@ struct tree
 struct node
 {
   elem_t name;
-  elem_t elem; //T = struct vara*
+  elem_t elem; 
   struct node *left;
   struct node *right;
-};
-
-struct vara
-{
-  elem_t name;
-  char *beskrivning;
-  int pris;
-  struct list *shelflist;
-  int antal;
 };
 
 struct node *new_node(elem_t name, elem_t elem)
@@ -41,6 +33,17 @@ struct node *new_node(elem_t name, elem_t elem)
   temp->right = NULL;
   return temp;
 }
+
+elem_t node_get_name(node_t *node)
+{
+  return node->name;
+}
+
+elem_t tree_get_name(tree_t *tree)
+{
+  return node_get_name(tree->root);
+}
+
 
 tree_t *tree_new(element_copy_fun element_copy, key_free_fun key_free, element_free_fun element_free, element_comp_fun element_compare)
 {
@@ -258,13 +261,13 @@ bool tree_has_key(tree_t *tree, tree_key_t key)
   return false;
 }
 
-elem_t tree_get_prim(struct node *n, elem_t key, element_comp_fun compare)
+elem_t *tree_get_prim(struct node *n, elem_t key, element_comp_fun compare)
 {
   if (n)
     {
       if (compare(n->name, key) == 0)
         {
-          return n->elem;
+          return &n->elem;
         }
       if (compare(n->name, key) > 0)
         {
@@ -281,13 +284,14 @@ elem_t tree_get_prim(struct node *n, elem_t key, element_comp_fun compare)
             }
         }
     }
+  return NULL;
 }
 
 bool tree_get(tree_t *tree, tree_key_t key, elem_t *result)
 {
   if (tree && tree_has_key(tree, key))
     {
-      *result = tree_get_prim(tree->root, key, tree->element_compare);
+      *result = *tree_get_prim(tree->root, key, tree->element_compare);
       return true;
     }
   else
@@ -382,6 +386,102 @@ bool tree_remove(tree_t *tree, tree_key_t key, elem_t *result)
         }
     }
   return NULL;//endast för inlupp 1
+}
+
+elem_t *get_node_from_index_prim(struct node *n, int index, int *counter)
+{
+  elem_t *temp;
+  if (n)
+    {
+      if (n->left)
+        {
+          temp = get_node_from_index_prim(n->left, index, counter);
+          if (temp)
+            {
+              return temp;
+            }
+        }
+      *counter = *counter +1;
+      if (index == *counter)
+        {
+          return &n->elem;
+        }
+      if (n->right)
+        {
+          temp = get_node_from_index_prim(n->right, index, counter);
+          if (temp)
+            {
+              return temp;
+            }
+        }
+    }
+  return NULL;
+}
+
+elem_t *get_node_from_index(tree_t *db, int index)
+{
+  int counter = 0;
+  return get_node_from_index_prim(db->root, index, &counter);
+}
+
+void print_tree_ltr_prim(struct node *n, int *counter, int *page)
+{
+  if (n && *counter > 0)//noden finns
+    {
+      //Kör vänster trädet först
+      print_tree_ltr_prim(n->left,counter,page);
+      //Kör nuvarande noden
+      printf("%d: %s\n",*counter,n->name.p);
+      *counter = *counter +1;
+      if (*counter%21==0)
+        {
+          char *val;
+          do
+            {
+              puts("-------------------------------");
+              val = ask_question_string("Visa fler varor(y,n)?");
+            }
+          while (val[0] != 'y' && val[0] != 'n');
+          if (val[0] == 'n')
+            {
+              *counter = -1;
+              return;
+            }
+          else
+            {
+              *page = *page +20;
+              *counter = 1;
+            }
+        }
+      //Kör högerträdet sen
+      print_tree_ltr_prim(n->right, counter,page);
+    }
+  //noden fanns inte
+}
+
+int print_tree_ltr(tree_t *t)
+{
+  puts("-------------------------------");
+  int counter = 1;
+  int page = 0;
+  if (t)
+    {
+      if (t->root)
+        {
+          print_tree_ltr_prim(t->root,&counter,&page);
+        }
+      else
+        {
+          //om trädet finns men är tomt
+          printf("The tree is empty\n");
+        }
+    }
+  else
+    {
+      //eventuellt felmeddelande
+    }
+  puts("-------------------------------");
+  return page;
 }
 
 void tree_keys_prim(struct node *n, elem_t *names, int *counter)

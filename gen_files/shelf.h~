@@ -1,0 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "tree.h"
+#include "list.h"
+#include "utils.h"
+#include <string.h>
+
+
+void does_node_have_shelf(tree_t *n, char *shelf, bool *exists);

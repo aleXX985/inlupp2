@@ -1,0 +1,14 @@
+#include "tree.h"
+#include "list.h"
+
+//Prints the menu for adding and item to the database
+//
+//
+//
+int new_item_menu();
+
+struct regret *new_item(tree_t *db);
+
+void *delete_item(tree_t *db);
+
+struct regret *edit_item(tree_t *db);

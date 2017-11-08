@@ -1,0 +1,288 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "tree.h"
+#include "list.h"
+#include "utils.h"
+#include <string.h>
+
+
+struct item
+{
+  char *name;
+  char *desc;
+  int price;
+  list_t *shelflist;
+};
+
+int new_item_menu()
+{
+  char *choice;
+  while (1)
+    {
+      choice = strdup(ask_question_string("Vill du lägga till i databasen? ([J]a, [N]ej, [R]edigera)"));
+      if ((choice[0] == 'J') || (choice[0] == 'j'))
+        {
+          free(choice);
+          return 1;
+        }
+      if ((choice[0] == 'N') || (choice[0] == 'n'))
+        {
+          free(choice);
+          return 2;
+        }
+      if ((choice[0] == 'R') || (choice[0] == 'r'))
+        {
+          free(choice);
+          return 3;
+        }
+      else
+        {
+          puts("Fel inmatning! Skriv in igen!");
+        }
+    }    
+  return 0;
+}
+
+struct regret *new_item(struct tree *db)
+{
+  char *name = strdup(ask_question_string("Vad heter varan?"));
+  //Kolla om varan redan finns
+  bool exists = tree_has_key(db, name);
+  if (!exists)
+    {
+          char *desc = ask_question_string("Beskriv varan:");
+          int price = ask_question_int("Vad kostar varan?");
+
+          //Fortsätt fråga tills vi har en giltig plats
+          char *shelf;
+          bool taken = true;
+          do
+            {
+              shelf = ask_question_shelf("Vilken hylla ligger varan på?");
+              taken = is_shelf_taken(db,shelf);
+              if (taken)
+                {
+                  printf("\nHyllplatsen är redan tagen, välj en annan!\n");
+                }
+            }
+          while (is_shelf_taken(db,shelf));
+          L elem;
+          elem.bokstav = shelf[0];
+          char *ptr;
+          long num = strtol(shelf+1,&ptr,10);
+          elem.hyllnummer = num;
+          //När vi har en giltig plats så 
+          int amount = ask_question_int("Hur många?");
+          elem.antal = amount;
+
+          T tempelement = new_element(name, desc, price,elem);
+          //Skapa ett temp element
+          //fråga om vi vill ändra på temp elementet
+
+          int val = 0;
+          while (1)
+            {
+              val = new_item_menu();
+              if (val == 1)
+                {
+                  tree_insert(db,name,tempelement);
+                  break;
+                }
+              if (val == 2)
+                {
+                  //frigör tempelement?
+                  return NULL;
+                  break;
+                  //inget ska hända
+                }
+              if (val == 3)
+                {
+                  edit_element(tempelement, db);
+                }
+            }
+          tree_insert(db,name,tempelement);///SKAPA ETT ELEMENT FRÅN SHELF STRÄNGEN
+          //free(desc);
+          //free(name);
+          return new_regret(1,NULL,tempelement,NULL);
+    }
+  else
+    {
+      printf("Varan finns redan i systemet, använder samma beskrivning och pris\n");
+      
+      char *shelf;
+      bool taken;
+      do
+        {
+          shelf = ask_question_shelf("Vilken hylla ligger varan på?");
+          taken = is_shelf_taken(db,shelf);
+          if (taken)
+            {
+              printf("\nHyllplatsen är redan tagen, välj en annan!\n");
+            }
+        }
+      while (is_shelf_taken(db,shelf));
+      
+      elem_t elem;
+      elem.bokstav = shelf[0];
+      char *ptr;
+      long num = strtol(shelf+1,&ptr,10);
+      elem.hyllnummer = num;
+      //När vi har en giltig plats så 
+      int amount = ask_question_int("Hur många?");
+      elem.antal = amount;
+      //Antar att vi kan sätta in hyllplatsen
+      T temp = tree_get(db,name);
+      if (list_length(temp->shelflist)== 0)
+        {
+          temp->shelflist = list_new();
+        }
+      list_append(temp->shelflist,elem);
+      return new_regret(2,NULL,temp,NULL);
+    }
+}
+
+void *delete_item(struct tree *db)
+{
+  puts("Ta bort vara");
+  puts("============");
+  puts("");
+  int page = print_tree_ltr(db);
+  if (tree_depth(db) == 0)
+    {
+      puts("Det finns inget att ta bort");
+      return 0;
+    }
+  else
+    {
+      int itemindex;
+      do
+        {
+          puts("");
+          itemindex = ask_question_int("Välj en vara att ta bort:");
+          if ((itemindex + page > tree_size(db)) || (itemindex + page < 1))
+            {
+              printf("Felaktigt index! Välj ett nytt:\n");
+            }
+        }
+      while ((itemindex + page > tree_size(db)) || (itemindex + page < 1));
+      elem_t temp = get_node_from_index(db,itemindex+page);
+      puts("");
+      printf("%s finns lagrad på följande platser:\n",temp->name);
+      int listl = list_length(temp->shelflist);
+      elem_t *elem;
+      int counter = 0;
+      for (int i = 0; i < listl; i++)
+        {
+          counter = counter + 1;
+          elem = list_get(temp->shelflist,i);
+          printf("%d: %c%d (%d stycken)\n",counter,elem->bokstav,elem->hyllnummer,elem->antal);
+        }
+      puts("");
+      int shelfindex;
+      do
+        {
+          puts("");
+          shelfindex = ask_question_int("Vilken plats skall tas bort (0 för ingen)?");
+          if ((shelfindex > counter) || (shelfindex < 0))
+            {
+              printf("Felaktigt index! Välj ett nytt:\n");
+            }
+        }
+      while ((shelfindex < 0) || (shelfindex > counter));
+      elem_t templist = get_node_from_index(db,shelfindex);
+      if (shelfindex == 0)
+        {
+          return 0;
+        }
+      else 
+        {
+          list_remove(temp->shelflist, shelfindex - 1, NULL);
+          if (list_length(temp->shelflist) == 0)
+            {
+              tree_remove(db, templist->name);
+            }
+        }
+    }
+  return 0;
+}
+
+struct regret *edit_item(tree_t *db)
+{
+  struct regret *regret = new_regret(0,NULL,NULL,NULL);
+  int val;
+  int page = print_tree_ltr(db);
+  do
+    {
+      val = ask_question_int("Vilken vara vill du redigera?");
+      if ((val+page > tree_size(db)) || (val+page < 1))
+        {
+          printf("Felaktigt index! Välj ett nytt:\n");
+        }
+    }
+  while ((val+page > tree_size(db)) || (val+page < 1));
+  elem_t temp = get_node_from_index(db,val+page);
+  elem_t re = NULL;
+  print_vara(temp);
+  puts("-------------------------------");
+  print_edit(temp);
+  char *choice = ask_question_edit("Välj rad eller [a]vbryt:");
+  if ((*choice == 'B') || (*choice == 'b'))
+    {
+      printf("\nNuvarande beskrivning: %s\n-------------------------------\n",temp->beskrivning);
+      char *beskrivning = ask_question_string("Skriv en ny beskrivning:");
+      //free(temp->beskrivning);
+      re = new_element(temp->name,temp->beskrivning,0,*list_get(temp->shelflist,0));///FIX
+      regret->code = 3;
+      regret->vara = re;
+      temp->beskrivning = strdup(beskrivning);
+    }
+  if ((*choice == 'P') || (*choice == 'p'))
+    {
+      printf("\nNuvarande pris: %d\n-------------------------------\n",temp->pris);
+      int pris = ask_question_int("Skriv in ett nytt pris:");
+      re = new_element(temp->name,"",temp->pris,*list_get(temp->shelflist,0));///FIX
+      regret->code = 4;
+      regret->vara = re;
+      temp->pris = pris;
+    }
+  if ((*choice == 'L') || (*choice == 'l'))
+    {
+      int finns = -1;
+      while (finns == -1)
+        {
+          char *hylla = ask_question_shelf("Vilken hylla vill du ändra på?");
+          finns = list_contains(temp->shelflist, hylla);
+          if (finns != -1)
+            {
+              elem_t elem;
+              elem_t *elemptr = &elem;
+              int antal = ask_question_int("Skriv nytt antal");
+              if (antal == 0)
+                {
+                  regret->lista = copy_list(temp->shelflist);
+                  regret->vara = temp;
+                  list_remove(temp->shelflist, finns, &elem);
+                  
+                  //elem innehåller det borttagna elementet.
+                }
+              else
+                {
+                  regret->lista = copy_list(temp->shelflist);
+                  regret->vara = temp;
+                  elemptr = list_get(temp->shelflist, finns);
+                  elemptr->antal = antal;
+                }
+              regret->code = 5;
+            }
+        }
+     
+    }
+  if ((*choice == 'A') || (*choice == 'a'))
+    {
+      //ska inte göra något
+      free(regret);
+      regret = NULL;
+    }
+  free(choice);
+  return regret;
+}

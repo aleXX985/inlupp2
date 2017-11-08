@@ -1,4 +1,6 @@
 #include "list.h"
+#include "shelf.h"
+#include "tree.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -8,13 +10,6 @@ kolla om L är en int fortfarande
  */
 
 typedef elem_t L;
-
-struct LM
-{
-  char bokstav;
-  int hyllnummer;
-  int antal;
-};
 
 struct list
 {
@@ -306,4 +301,17 @@ int list_contains(list_t *list, elem_t elem)
       cursor = cursor->next;
     }
   return -1;
+}
+
+struct list *copy_list(struct list *l)
+{
+  int length = list_length(l);
+  struct link *link = l->first;
+  struct list *temp = list_new(l->copy, l->free, l->compare);
+  for (int i = 0; i<length; i++)
+    {
+      list_append(temp,link->element);
+      link = link->next;
+    }
+  return temp;
 }
