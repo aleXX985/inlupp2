@@ -16,6 +16,31 @@ struct LM
   int antal;
 };
 
+struct tree
+{
+  struct node *root;
+  element_copy_fun element_copy;
+  key_free_fun key_free;
+  element_free_fun element_free;
+  element_comp_fun element_compare;
+};
+
+struct node
+{
+  elem_t name;
+  elem_t elem;
+  struct node *left;
+  struct node *right;
+};
+
+struct item
+{
+  char *name;
+  char *desc;
+  int price;
+  list_t *shelflist;
+};
+
 void does_node_have_shelf(node_t *n, char *shelf, bool *exists)
 {
   list_t *shelves = ((item_t*)(n->elem.p))->shelflist;
@@ -67,4 +92,3 @@ bool is_shelf_taken(tree_t *db, char *shelf)
     }
   return isItThere;
 }
-

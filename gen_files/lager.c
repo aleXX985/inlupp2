@@ -11,6 +11,14 @@
 SAKER ATT FIXA
 lager.c*/
 
+struct item
+{
+  char *name;
+  char *desc;
+  int price;
+  list_t *shelflist;
+};
+
 struct regret
 {
   int code; //0 = ångrade, 1 = Lade till node
@@ -27,6 +35,14 @@ struct vara
   struct list *shelflist;
   int antal;
 };
+
+struct LM
+{
+  char bokstav;
+  int hyllnummer;
+  int antal;
+};
+
 
 
 item_t *new_element(char *namn, char *desc, int price, list_t *shelflist)
@@ -86,32 +102,19 @@ void print_edit(item_t *temp)
   puts("");
 }
 
-void print_vara(elem_t vara)
-{
-  printf("-------------------------------\n");
-  printf("Namn: %s\n", vara->name);
-  printf("Beskrivning: %s\n", vara->beskrivning);
-  printf("Pris: %d\n", vara->pris);
-  int listl = list_length(vara->shelflist);
-  elem_t *elem;
-  for (int i = 0; i < listl; i++)
-    {
-      elem = list_get(vara->shelflist,i);
-      printf("Hylla: %c%d Antal:%d\n",elem->bokstav,elem->hyllnummer,elem->antal);
-    }
-}
-int list_contains(struct list *l, char *shelf)
+int list_contains_shelf(struct list *l, char *shelf)
 {
   int length = list_length(l);
-  elem_t *temp;
+  elem_t *temp = NULL;
   for (int i = 0; i < length; i++)
     {
-      temp = list_get(l, i, );
-      if (shelf[0] == temp->bokstav)
+      list_get(l, i,temp);
+      struct LM *temp_hylla = temp->p;
+      if (shelf[0] == temp_hylla->bokstav)
         {
           char *ptr;
           long num = strtol(shelf + 1, &ptr, 10);
-          if (num == temp->hyllnummer)
+          if (num == temp_hylla->hyllnummer)
             {
               return i;
             }
@@ -120,8 +123,28 @@ int list_contains(struct list *l, char *shelf)
   return -1;
 }
 
+void print_vara(elem_t vara)
+{
+  struct vara *temp_vara = vara.p;
+  printf("-------------------------------\n");
+  printf("Namn: %s\n", temp_vara->name.p);
+  printf("Beskrivning: %s\n", temp_vara->beskrivning);
+  printf("Pris: %d\n", temp_vara->pris);
+  int listl = list_length(temp_vara->shelflist);
+  elem_t *elem = NULL;
+  for (int i = 0; i < listl; i++)
+    {
+      list_get(temp_vara->shelflist, i, elem);
+      struct LM *temp_lm = elem->p;
+      printf("Hylla: %c%d Antal:%d\n", temp_lm->bokstav, temp_lm->hyllnummer, temp_lm->antal);
+    }
+}
+
 void regret_action(struct regret *regret, struct tree *db)
 {
+  struct vara *temp_vara = regret->vara->p;
+  elem_t* result = NULL;
+  struct vara* result_vara;
   if (regret)
     {
       if (regret->code == 0)
@@ -131,31 +154,35 @@ void regret_action(struct regret *regret, struct tree *db)
       if (regret->code == 1)
         {
           //tree_remove returnerar ett T men det är oviktigt just nu
-          tree_remove(db,regret->vara->name);
+          tree_remove(db, temp_vara->name, NULL);
           regret->code = 0;
           regret->vara = NULL;
         }
       if (regret->code == 2)
         {
-          list_remove(regret->vara->shelflist,list_length(regret->vara->shelflist)-1,NULL);
+          list_remove(temp_vara->shelflist,list_length(temp_vara->shelflist)-1,NULL);
           regret->code = 0;
           regret->vara = NULL;
         }
       if (regret->code == 3)//ångra redigera beskrivning av vara
         {
-          tree_get(db,regret->vara->name)->beskrivning = regret->vara->beskrivning;
+          tree_get(db, temp_vara->name, result);
+          result_vara = result->p;
+          result_vara->beskrivning = temp_vara->beskrivning;
           regret->code = 0;
           regret->vara = NULL;
         }
       if (regret->code == 4)//ångra redigera pris av vara
         {
-          tree_get(db,regret->vara->name)->pris = regret->vara->pris;
+          tree_get(db, temp_vara->name, result);
+          result_vara->pris = temp_vara->pris;
           regret->code = 0;
           regret->vara = NULL;
         }
       if (regret->code == 5)//antal i hylla
         {
-          tree_get(db,regret->vara->name)->shelflist = copy_list(regret->lista);
+          tree_get(db, temp_vara->name, result);
+          result_vara->shelflist = copy_list(regret->lista);
           regret->code = 0;
           regret->vara = NULL;
           //FREE LISTA?
@@ -170,7 +197,7 @@ int event_loop(tree_t *db)
   char *choice = NULL;
   struct regret *regret = NULL;
   struct regret *last = new_regret(0,NULL,NULL,NULL);
-  //char *lastaction; //add, edit, 
+  //char *lastaction; //add, edit,
   while (1)
     {
       print_menu();

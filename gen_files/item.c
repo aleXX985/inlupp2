@@ -24,6 +24,24 @@ struct LM
   int antal;
 };
 
+struct vara
+{
+  elem_t name;
+  char *beskrivning;
+  int pris;
+  struct list *shelflist;
+  int antal;
+};
+
+struct regret
+{
+  int code; //0 = ångrade, 1 = Lade till node
+  struct node *nod;
+  elem_t *vara;
+  struct list *lista;
+};
+
+
 int new_item_menu()
 {
   char *choice;
@@ -49,7 +67,7 @@ int new_item_menu()
         {
           puts("Fel inmatning! Skriv in igen!");
         }
-    }    
+    }
   return 0;
 }
 
@@ -77,7 +95,7 @@ void edit_element(elem_t element, struct tree *db)
   char *ptr;
   long num = strtol(shelf+1,&ptr,10);
   ((struct LM*)(elem.p))->hyllnummer = num;
-  //När vi har en giltig plats så 
+  //När vi har en giltig plats så
   int amount = ask_question_int("Hur många?");
   ((struct LM*)(elem.p))->antal = amount;
 
@@ -122,7 +140,7 @@ struct regret *new_item(struct tree *db)
           char *ptr;
           long num = strtol(shelf+1,&ptr,10);
           ((struct LM*)(elem.p))->hyllnummer = num;
-          //När vi har en giltig plats så 
+          //När vi har en giltig plats så
           int amount = ask_question_int("Hur många?");
           ((struct LM*)(elem.p))->antal = amount;
 
@@ -160,7 +178,7 @@ struct regret *new_item(struct tree *db)
   else
     {
       printf("Varan finns redan i systemet, använder samma beskrivning och pris\n");
-      
+
       char *shelf;
       bool taken;
       do
@@ -173,17 +191,17 @@ struct regret *new_item(struct tree *db)
             }
         }
       while (is_shelf_taken(db,shelf));
-      
+
       elem_t elem;
       ((struct LM*)(elem.p))->bokstav = shelf[0];
       char *ptr;
       long num = strtol(shelf+1,&ptr,10);
       ((struct LM*)(elem.p))->hyllnummer = num;
-      //När vi har en giltig plats så 
+      //När vi har en giltig plats så
       int amount = ask_question_int("Hur många?");
       ((struct LM*)(elem.p))->antal = amount;
       //Antar att vi kan sätta in hyllplatsen
-      elem_t *result = NULL;
+      elem_t *result;
       tree_get(db, temp_key, result);
       item_t *temp_item = result->p;
       if (list_length(temp_item->shelflist)== 0)
@@ -262,7 +280,7 @@ void *delete_item(struct tree *db)
         {
           return 0;
         }
-      else 
+      else
         {
           list_remove(temp_item->shelflist, shelfindex - 1, NULL);
           if (list_length(temp_item->shelflist) == 0)
@@ -292,7 +310,7 @@ struct regret *edit_item(tree_t *db)
   while ((val+page > tree_size(db)) || (val+page < 1));
   elem_t *temp = get_node_from_index(db,val+page);
   struct vara *temp_vara = temp->p;
-  elem_t *re = NULL;
+  elem_t *re;
   print_vara(*temp);
   puts("-------------------------------");
   print_edit(temp->p);
@@ -302,19 +320,21 @@ struct regret *edit_item(tree_t *db)
       printf("\nNuvarande beskrivning: %s\n-------------------------------\n",temp_vara->beskrivning);
       char *beskrivning = ask_question_string("Skriv en ny beskrivning:");
       //free(temp->beskrivning);
-      re = new_element(temp->name,temp->beskrivning,0,*list_get(temp->shelflist,0));///FIX
+      list_get(temp_vara->shelflist, 0, re);
+      new_element(temp_vara->name.p, temp_vara->beskrivning, 0, re->p);///FIX
       regret->code = 3;
       regret->vara = re;
-      temp->beskrivning = strdup(beskrivning);
+      temp_vara->beskrivning = strdup(beskrivning);
     }
   if ((*choice == 'P') || (*choice == 'p'))
     {
-      printf("\nNuvarande pris: %d\n-------------------------------\n",temp->pris);
+      printf("\nNuvarande pris: %d\n-------------------------------\n",temp_vara->pris);
       int pris = ask_question_int("Skriv in ett nytt pris:");
-      re = new_element(temp->name,"",temp->pris,*list_get(temp->shelflist,0));///FIX
+      list_get(temp_vara->shelflist, 0, re);
+      new_element(temp_vara->name.p,"",temp_vara->pris, re->p);///FIX
       regret->code = 4;
       regret->vara = re;
-      temp->pris = pris;
+      temp_vara->pris = pris;
     }
   if ((*choice == 'L') || (*choice == 'l'))
     {
@@ -322,7 +342,7 @@ struct regret *edit_item(tree_t *db)
       while (finns == -1)
         {
           char *hylla = ask_question_shelf("Vilken hylla vill du ändra på?");
-          finns = list_contains(temp->shelflist, hylla);
+          finns = list_contains_shelf(temp_vara->shelflist, hylla);
           if (finns != -1)
             {
               elem_t elem;
@@ -330,23 +350,24 @@ struct regret *edit_item(tree_t *db)
               int antal = ask_question_int("Skriv nytt antal");
               if (antal == 0)
                 {
-                  regret->lista = copy_list(temp->shelflist);
+                  regret->lista = copy_list(temp_vara->shelflist);
                   regret->vara = temp;
-                  list_remove(temp->shelflist, finns, &elem);
-                  
+                  list_remove(temp_vara->shelflist, finns, true);
+
                   //elem innehåller det borttagna elementet.
                 }
               else
                 {
-                  regret->lista = copy_list(temp->shelflist);
+                  regret->lista = copy_list(temp_vara->shelflist);
                   regret->vara = temp;
-                  elemptr = list_get(temp->shelflist, finns);
-                  elemptr->antal = antal;
+                  list_get(temp_vara->shelflist, finns, elemptr);
+                  struct vara *two_gig = elemptr->p;
+                  two_gig->antal = antal;
                 }
               regret->code = 5;
             }
         }
-     
+
     }
   if ((*choice == 'A') || (*choice == 'a'))
     {

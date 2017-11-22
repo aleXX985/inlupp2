@@ -33,3 +33,5 @@ struct list *copy_list(struct list *l);
 void regret_action(struct regret *regret, struct tree *db);
 
 int event_loop(tree_t *db);
+
+int list_contains_shelf(struct list *l, char *shelf);
